@@ -1,0 +1,54 @@
+name: Build OpenCV.js
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake
+        sudo apt-get install -y build-essential
+        python -m pip install --upgrade pip
+        pip install numpy
+
+    - name: Setup emsdk
+      uses: mymindstorm/setup-emsdk@v12
+      with:
+        version: '3.1.45'
+        actions-cache-folder: 'emsdk-cache'
+
+    - name: Clone OpenCV
+      run: |
+        git clone https://github.com/opencv/opencv.git
+        cd opencv
+        git checkout 4.x
+
+    - name: Build OpenCV.js
+      run: |
+        cd opencv
+        python ./platforms/js/build_js.py build_js --build_wasm
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: opencv-js
+        path: |
+          opencv/build_js/bin/opencv.js
+          opencv/build_js/bin/opencv_js.js
+          opencv/build_js/bin/opencv_js.wasm
