@@ -30,14 +30,14 @@ jobs:
     - name: Setup emsdk
       uses: mymindstorm/setup-emsdk@v12
       with:
-        version: '3.1.45'
-        actions-cache-folder: 'emsdk-cache'
+        version: 'latest'
+        actions-cache-folder: 'emsdk-cache-latest'
 
     - name: Clone OpenCV
       run: |
         git clone https://github.com/opencv/opencv.git
         cd opencv
-        git checkout 4.x
+        git checkout 4.9.0
 
     - name: Build OpenCV.js
       run: |
