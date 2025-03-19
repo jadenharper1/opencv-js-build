@@ -28,54 +28,53 @@ jobs:
         version: '3.1.51'
         no-cache: true
 
-    - name: Verify Emscripten Setup
-      run: |
-        source /home/runner/emsdk/emsdk_env.sh
-        echo "EMSCRIPTEN = $EMSCRIPTEN"
-        emcc --version
-        echo "Current directory: $(pwd)"
-        ls -la
-
     - name: Clone OpenCV
       run: |
         git clone --depth 1 --branch 4.9.0 https://github.com/opencv/opencv.git
-        cd opencv
-        echo "OpenCV directory contents:"
-        ls -la
-        echo "platforms/js contents:"
-        ls -la platforms/js/
 
     - name: Build OpenCV.js
+      shell: bash
       run: |
-        # Source Emscripten environment
-        source /home/runner/emsdk/emsdk_env.sh
+        # Get Emscripten path
+        EMSDK_PATH=/home/runner/emsdk
+        source $EMSDK_PATH/emsdk_env.sh
         
-        cd opencv
-        echo "Starting build process..."
+        # Print debug information
+        echo "Emscripten location: $EMSCRIPTEN"
         echo "Current directory: $(pwd)"
         
-        # Create build directory
+        # Build OpenCV.js
+        cd opencv
+        
+        # Create and enter build directory
         mkdir -p build_js
+        cd build_js
         
-        # Run build script with verbose output
-        python ./platforms/js/build_js.py build_js --build_wasm --emscripten_dir=$EMSCRIPTEN --verbose
+        # Configure with CMake
+        echo "Running CMake configuration..."
+        emcmake cmake \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=/usr/local \
+          -DOPENCV_ENABLE_NONFREE=OFF \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DBUILD_opencv_apps=OFF \
+          -DBUILD_opencv_js=ON \
+          -DBUILD_opencv_python=OFF \
+          -DBUILD_TESTS=OFF \
+          -DBUILD_PERF_TESTS=OFF \
+          -DBUILD_EXAMPLES=OFF \
+          ..
         
-        echo "Build script completed"
-        echo "Current directory structure:"
-        ls -la
+        # Build
+        echo "Starting build..."
+        make -j2
         
-        echo "Build directory contents (if exists):"
-        ls -la build_js || true
-        
-        echo "Bin directory contents (if exists):"
-        ls -la build_js/bin || true
+        echo "Build complete. Checking output files:"
+        ls -la bin/
 
     - name: Upload artifacts
-      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: opencv-js
-        path: |
-          opencv/build_js/bin/*.js
-          opencv/build_js/bin/*.wasm
+        path: opencv/build_js/bin/
         if-no-files-found: error
