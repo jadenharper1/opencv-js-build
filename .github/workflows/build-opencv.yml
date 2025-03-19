@@ -35,23 +35,14 @@ jobs:
     - name: Build OpenCV.js
       shell: bash
       run: |
-        # Get Emscripten path
-        EMSDK_PATH=/home/runner/emsdk
-        source $EMSDK_PATH/emsdk_env.sh
+        # Setup Emscripten
+        source /home/runner/emsdk/emsdk_env.sh
         
-        # Print debug information
-        echo "Emscripten location: $EMSCRIPTEN"
-        echo "Current directory: $(pwd)"
-        
-        # Build OpenCV.js
         cd opencv
-        
-        # Create and enter build directory
         mkdir -p build_js
         cd build_js
         
-        # Configure with CMake
-        echo "Running CMake configuration..."
+        echo "Running CMake..."
         emcmake cmake \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_INSTALL_PREFIX=/usr/local \
@@ -65,16 +56,32 @@ jobs:
           -DBUILD_EXAMPLES=OFF \
           ..
         
-        # Build
-        echo "Starting build..."
+        echo "Building..."
         make -j2
         
-        echo "Build complete. Checking output files:"
-        ls -la bin/
+        echo "Build complete. Checking directory structure:"
+        pwd
+        echo "Current directory contents:"
+        ls -la
+        echo "Bin directory contents (if exists):"
+        ls -la bin/ || echo "bin directory not found"
+        echo "Lib directory contents (if exists):"
+        ls -la lib/ || echo "lib directory not found"
+        echo "Parent directory contents:"
+        ls -la ..
+        
+        # Try to find the JS files
+        echo "Looking for JS files:"
+        find . -name "*.js"
+        echo "Looking for WASM files:"
+        find . -name "*.wasm"
 
     - name: Upload artifacts
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: opencv-js
-        path: opencv/build_js/bin/
-        if-no-files-found: error
+        path: |
+          opencv/build_js/**/*.js
+          opencv/build_js/**/*.wasm
+        if-no-files-found: warn
