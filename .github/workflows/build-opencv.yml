@@ -1,54 +1,59 @@
 name: Build OpenCV.js
 
 on:
+  workflow_dispatch:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v4
 
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.x'
+        python-version: '3.10'
 
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y cmake
-        sudo apt-get install -y build-essential
-        python -m pip install --upgrade pip
+        sudo apt-get install -y cmake build-essential
         pip install numpy
 
-    - name: Setup emsdk
+    - name: Setup Emscripten
       uses: mymindstorm/setup-emsdk@v12
       with:
-        version: 'latest'
-        actions-cache-folder: 'emsdk-cache-latest'
+        version: '3.1.51'
+        no-cache: true
+
+    - name: Verify Emscripten Setup
+      run: |
+        source /home/runner/emsdk/emsdk_env.sh
+        echo "EMSCRIPTEN = $EMSCRIPTEN"
+        emcc --version
 
     - name: Clone OpenCV
       run: |
-        git clone https://github.com/opencv/opencv.git
+        git clone --depth 1 --branch 4.9.0 https://github.com/opencv/opencv.git
         cd opencv
-        git checkout 4.9.0
+        ls -la
 
     - name: Build OpenCV.js
       run: |
+        # Source Emscripten environment
+        source /home/runner/emsdk/emsdk_env.sh
+        
         cd opencv
-        python ./platforms/js/build_js.py build_js --build_wasm
+        python ./platforms/js/build_js.py build_js --build_wasm --emscripten_dir=$EMSCRIPTEN
+        
+        echo "Build completed. Contents of build_js/bin/:"
+        ls -la build_js/bin/
 
     - name: Upload artifacts
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: opencv-js
-        path: |
-          opencv/build_js/bin/opencv.js
-          opencv/build_js/bin/opencv_js.js
-          opencv/build_js/bin/opencv_js.wasm
+        path: opencv/build_js/bin/
