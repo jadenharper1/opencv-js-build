@@ -19,18 +19,18 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y cmake build-essential
-        pip install numpy
+        sudo apt-get install -y cmake build-essential python3-pip
+        pip install numpy scikit-build
 
     - name: Setup Emscripten
       uses: mymindstorm/setup-emsdk@v12
       with:
-        version: '3.1.51'
+        version: '2.0.34'
         no-cache: true
 
     - name: Clone OpenCV
       run: |
-        git clone --depth 1 --branch 4.9.0 https://github.com/opencv/opencv.git
+        git clone --depth 1 --branch 4.8.0 https://github.com/opencv/opencv.git
 
     - name: Build OpenCV.js
       shell: bash
@@ -40,57 +40,12 @@ jobs:
         
         cd opencv
         
-        # Create build directory
-        mkdir -p build_js
-        cd build_js
-        
-        # Configure with CMake
-        echo "Running CMake configuration..."
-        emcmake cmake \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_INSTALL_PREFIX=/usr/local \
-          -DOPENCV_ENABLE_NONFREE=OFF \
-          -DBUILD_SHARED_LIBS=OFF \
-          -DBUILD_opencv_apps=OFF \
-          -DBUILD_opencv_js=ON \
-          -DBUILD_opencv_python=OFF \
-          -DBUILD_TESTS=OFF \
-          -DBUILD_PERF_TESTS=OFF \
-          -DBUILD_EXAMPLES=OFF \
-          ..
-        
-        # Build
-        echo "Starting build..."
-        make -j2
-        
-        echo "Build complete. Checking directory structure:"
-        find . -type f -name "*.js" -o -name "*.wasm"
-        
-        echo "Contents of current directory:"
-        ls -la
-        
-        echo "Contents of bin directory (if exists):"
-        ls -la bin/ || echo "bin directory not found"
-        
-        echo "Contents of lib directory (if exists):"
-        ls -la lib/ || echo "lib directory not found"
-        
-        echo "Contents of modules directory (if exists):"
-        ls -la modules/ || echo "modules directory not found"
-
-    - name: Find Build Artifacts
-      run: |
-        echo "Searching for JS and WASM files:"
-        find opencv/build_js -type f -name "*.js" -o -name "*.wasm"
+        # Use older known-working build command
+        python ./platforms/js/build_js.py --build_wasm --cmake_option="-DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local"
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
         name: opencv-js
-        path: |
-          opencv/build_js/**/*.js
-          opencv/build_js/**/*.wasm
-          opencv/build_js/bin/*
-          opencv/build_js/lib/*
-          opencv/build_js/modules/*
+        path: opencv/build_js/bin/
         if-no-files-found: warn
