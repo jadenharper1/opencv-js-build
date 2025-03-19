@@ -39,10 +39,13 @@ jobs:
         source /home/runner/emsdk/emsdk_env.sh
         
         cd opencv
+        
+        # Create build directory
         mkdir -p build_js
         cd build_js
         
-        echo "Running CMake..."
+        # Configure with CMake
+        echo "Running CMake configuration..."
         emcmake cmake \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_INSTALL_PREFIX=/usr/local \
@@ -56,32 +59,38 @@ jobs:
           -DBUILD_EXAMPLES=OFF \
           ..
         
-        echo "Building..."
+        # Build
+        echo "Starting build..."
         make -j2
         
         echo "Build complete. Checking directory structure:"
-        pwd
-        echo "Current directory contents:"
-        ls -la
-        echo "Bin directory contents (if exists):"
-        ls -la bin/ || echo "bin directory not found"
-        echo "Lib directory contents (if exists):"
-        ls -la lib/ || echo "lib directory not found"
-        echo "Parent directory contents:"
-        ls -la ..
+        find . -type f -name "*.js" -o -name "*.wasm"
         
-        # Try to find the JS files
-        echo "Looking for JS files:"
-        find . -name "*.js"
-        echo "Looking for WASM files:"
-        find . -name "*.wasm"
+        echo "Contents of current directory:"
+        ls -la
+        
+        echo "Contents of bin directory (if exists):"
+        ls -la bin/ || echo "bin directory not found"
+        
+        echo "Contents of lib directory (if exists):"
+        ls -la lib/ || echo "lib directory not found"
+        
+        echo "Contents of modules directory (if exists):"
+        ls -la modules/ || echo "modules directory not found"
+
+    - name: Find Build Artifacts
+      run: |
+        echo "Searching for JS and WASM files:"
+        find opencv/build_js -type f -name "*.js" -o -name "*.wasm"
 
     - name: Upload artifacts
-      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: opencv-js
         path: |
           opencv/build_js/**/*.js
           opencv/build_js/**/*.wasm
+          opencv/build_js/bin/*
+          opencv/build_js/lib/*
+          opencv/build_js/modules/*
         if-no-files-found: warn
